@@ -77,7 +77,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Send randomly selected Kindle highlights to a Discord channel.")
     parser.add_argument("clippings_file", help="clippings text file from Kindle device (/documents/My Clippings.txt)")
-    parser.add_argument("discord_token", help="discord authentication token")
+    parser.add_argument("discord_token", help="discord bot authentication token")
     parser.add_argument("discord_channel", type=int,  help="discord channel ID")
     parser.add_argument("--n", type=int, default=3, dest="n_highlights", help="number of highlights to include in message (default: %(default)s)")
 

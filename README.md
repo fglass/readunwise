@@ -2,11 +2,7 @@
 
 Send randomly selected Kindle highlights to a Discord channel. A simple alternative to [Readwise](https://readwise.io/)
 
-![Example Output](example-output.png)
-
-Run as a cron job, e.g. every day at 9am:
-
-`0 9 * * * /usr/bin/python readunwise.py <clippings_file> <discord_token> <discord_channel>`
+Run as a cron job e.g. every day at 9am: `0 9 * * * python3 home/pi/readunwise/src/readunwise.py <args>`
 
 ```
 usage: readunwise.py [-h] [--n N_HIGHLIGHTS] clippings_file discord_token discord_channel
@@ -15,7 +11,7 @@ Send randomly selected Kindle highlights to a Discord channel.
 
 positional arguments:
   clippings_file    clippings text file from Kindle device (/documents/My Clippings.txt)
-  discord_token     discord authentication token
+  discord_token     discord bot authentication token
   discord_channel   discord channel ID
 
 optional arguments:
@@ -23,5 +19,4 @@ optional arguments:
   --n N_HIGHLIGHTS  number of highlights to include in message (default: 3)
 ```
 
-
-
+![Example Output](example-output.png)
