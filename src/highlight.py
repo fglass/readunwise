@@ -23,6 +23,7 @@ class Highlight:
 
             description = description.replace(HIGHLIGHT_TOKEN, "")
             content = content.capitalize()
+
             return Highlight(book_title, description, content)
 
         except IndexError:
