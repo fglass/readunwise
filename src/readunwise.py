@@ -33,7 +33,8 @@ class ReadUnwiseClient(Client):
         await self._channel.send(embed=embed)
 
     def _get_random_book(self) -> str:
-        books = list(self._highlights_by_book.keys())
+        ignored_books = args.ignored_books or []
+        books = [book for book in self._highlights_by_book.keys() if book not in ignored_books]
         return random.choice(books)
 
     def _select_highlights(self, book: str) -> list:
@@ -78,7 +79,8 @@ if __name__ == "__main__":
     parser.add_argument("clippings_file", help="clippings text file from Kindle device (/documents/My Clippings.txt)")
     parser.add_argument("discord_token", help="discord bot authentication token")
     parser.add_argument("discord_channel", type=int,  help="discord channel ID")
-    parser.add_argument("--n", type=int, default=3, dest="n_highlights", help="number of highlights to include in message (default: %(default)s)")
+    parser.add_argument("-n", type=int, default=3, dest="n_highlights", help="number of highlights to select (default: %(default)s)")
+    parser.add_argument("-i", nargs='+', dest="ignored_books", help="titles of books to ignore")
 
     args = parser.parse_args()
     logging.info(f"Config: {vars(args)}")

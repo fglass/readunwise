@@ -21,6 +21,7 @@ class Highlight:
             description = parts.pop(0)
             content = "\n".join(parts)
 
+            book_title = book_title.rstrip()
             description = description.replace(HIGHLIGHT_TOKEN, "")
             content = content.capitalize()
 
