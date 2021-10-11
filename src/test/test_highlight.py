@@ -1,4 +1,4 @@
-from readunwise import Highlight
+from src.highlight import Highlight
 
 
 def test_create_highlight_from_clipping():

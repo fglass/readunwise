@@ -1,24 +1,22 @@
 import argparse
 import logging
 from highlight import Highlight
-from src.discord_client import DiscordClient
+from discord_client import DiscordClient
 
 CLIPPING_DELIMITER = "=========="
+LIST_ACTION = "list"
+EXPORT_ACTION = "export"
+SEND_ACTION = "send"
 
 
-def _run():
-    args = parser.parse_args()
-    logging.info(f"Config: {vars(args)}")
-
-    highlights_by_book = _load_highlights(args.clippings_file)
-
-    if args.list:
-        _list_books(highlights_by_book)
-    elif args.send:
+def _execute():
+    if args.action == LIST_ACTION:
+        _list_books()
+    elif args.action == EXPORT_ACTION:
+        _export_book()
+    elif args.action == SEND_ACTION:
         client = DiscordClient(args.discord_channel, highlights_by_book, args.ignored_books, args.n_highlights)
         client.send(args.discord_token)
-    else:
-        logging.error("Missing action: --list, --send")
 
 
 def _load_highlights(clippings_file: str) -> dict:
@@ -39,21 +37,52 @@ def _load_highlights(clippings_file: str) -> dict:
     return highlights
 
 
-def _list_books(highlights_by_book: dict):
-    [logging.info(f"({i + 1}) {book}") for i, book in enumerate(highlights_by_book)]
+def _list_books():
+    [logging.info(f"({i + 1}) {book}") for i, book in enumerate(highlights_by_book.keys())]
+
+
+def _export_book():
+    book = args.book
+
+    if book not in highlights_by_book:
+        logging.error(f"No highlights found for {book}")
+        return
+
+    sanitised_title = book.replace(":", "")
+    filename = f"{args.export_dir}/{sanitised_title}.md"
+
+    with open(filename, "w+", encoding="utf8") as f:
+        highlights = highlights_by_book[book]
+        lines = [f"- {h.content}\n" for h in highlights]
+        f.writelines(lines)
+
+    logging.info(f"Exported {filename}")
 
 
 if __name__ == "__main__":
     logging.basicConfig(format="%(asctime)s %(message)s", datefmt="%m/%d/%Y %I:%M:%S %p", level=logging.INFO)
     logging.getLogger("discord").setLevel(logging.ERROR)
 
-    parser = argparse.ArgumentParser(description="Send randomly selected Kindle highlights to a Discord channel.")
+    parser = argparse.ArgumentParser(description="A simple alternative to Readwise.")
     parser.add_argument("clippings_file", help="clippings file from Kindle device (/documents/My Clippings.txt)")
-    parser.add_argument("-l", "--list", action="store_true", help="list discovered books")
-    parser.add_argument("-s", "--send", action="store_true", help="send randomly selected highlights to a Discord channel")
-    parser.add_argument("-t", dest="discord_token", help="discord bot authentication token")
-    parser.add_argument("-c", dest="discord_channel", type=int,  help="discord channel ID")
-    parser.add_argument("-n", type=int, default=3, dest="n_highlights", help="number of highlights to select (default: %(default)s)")
-    parser.add_argument("-i", nargs='+', dest="ignored_books", help="titles of books to ignore")
 
-    _run()
+    subparsers = parser.add_subparsers(dest="action")
+    list_parser = subparsers.add_parser(LIST_ACTION, help="list books")
+
+    export_parser = subparsers.add_parser(EXPORT_ACTION, help="export book highlights as markdown")
+    export_parser.add_argument("book", help="target book")
+    export_parser.add_argument("export_dir", help="export directory")
+
+    send_parser = subparsers.add_parser(SEND_ACTION, help="send randomly selected highlights to a Discord channel")
+    send_parser.add_argument("discord_token", help="discord bot authentication token")
+    send_parser.add_argument("discord_channel", type=int,  help="discord channel ID")
+    send_parser.add_argument("-i", nargs='+', dest="ignored_books", help="titles of books to ignore")
+    send_parser.add_argument("-n", type=int, default=3, dest="n_highlights", help="number of highlights to select (default: %(default)s)")
+
+    args = parser.parse_args()
+
+    if args.action is not None:
+        highlights_by_book = _load_highlights(args.clippings_file)
+        _execute()
+    else:
+        logging.error("Invalid arguments, see --help")
