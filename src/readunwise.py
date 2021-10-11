@@ -1,53 +1,31 @@
 import argparse
 import logging
-import random
-from discord import Client, Embed
 from highlight import Highlight
+from src.discord_client import DiscordClient
 
 CLIPPING_DELIMITER = "=========="
-MAX_FIELD_SIZE = 1024
 
 
-class ReadUnwiseClient(Client):
-    def __init__(self):
-        super().__init__()
-        self._channel = None
-        self._highlights_by_book = _load_highlights()
+def _run():
+    args = parser.parse_args()
+    logging.info(f"Config: {vars(args)}")
 
-    def send(self):
-        self.run(args.discord_token)
+    highlights_by_book = _load_highlights(args.clippings_file)
 
-    async def on_ready(self):
-        self._channel = self.get_channel(args.discord_channel)
-
-        logging.info("Sending message...")
-        await self._send_message()
-
-        logging.info("Exiting...")
-        await self.close()
-
-    async def _send_message(self):
-        random_book = self._get_random_book()
-        selected_highlights = self._select_highlights(random_book)
-        embed = _create_embed(random_book, selected_highlights)
-        await self._channel.send(embed=embed)
-
-    def _get_random_book(self) -> str:
-        ignored_books = args.ignored_books or []
-        books = [book for book in self._highlights_by_book.keys() if book not in ignored_books]
-        return random.choice(books)
-
-    def _select_highlights(self, book: str) -> list:
-        book_highlights = self._highlights_by_book[book]
-        n_highlights = min(len(book_highlights), args.n_highlights)
-        return random.sample(book_highlights, k=n_highlights)
+    if args.list:
+        _list_books(highlights_by_book)
+    elif args.send:
+        client = DiscordClient(args.discord_channel, highlights_by_book, args.ignored_books, args.n_highlights)
+        client.send(args.discord_token)
+    else:
+        logging.error("Missing action: --list, --send")
 
 
-def _load_highlights() -> dict:
+def _load_highlights(clippings_file: str) -> dict:
     highlights = {}
     loaded = 0
 
-    with open(args.clippings_file, "r+", encoding="utf8") as f:
+    with open(clippings_file, "r+", encoding="utf8") as f:
         clippings = f.read().split(CLIPPING_DELIMITER)
 
     for clipping in clippings:
@@ -57,18 +35,12 @@ def _load_highlights() -> dict:
             loaded += 1
 
     logging.info(f"Found {loaded} highlights across {len(highlights)} books")
+
     return highlights
 
 
-def _create_embed(book: str, highlights: list) -> Embed:
-    embed = Embed(title=f"**📘 {book}**", color=0xfffff)
-    [embed.add_field(name="━" * 10, value=_format_content(highlight.content), inline=False) for highlight in highlights]
-    return embed
-
-
-def _format_content(content: str) -> str:
-    field = f"⭐ {content}"
-    return field[:MAX_FIELD_SIZE]
+def _list_books(highlights_by_book: dict):
+    [logging.info(f"({i + 1}) {book}") for i, book in enumerate(highlights_by_book)]
 
 
 if __name__ == "__main__":
@@ -76,13 +48,12 @@ if __name__ == "__main__":
     logging.getLogger("discord").setLevel(logging.ERROR)
 
     parser = argparse.ArgumentParser(description="Send randomly selected Kindle highlights to a Discord channel.")
-    parser.add_argument("clippings_file", help="clippings text file from Kindle device (/documents/My Clippings.txt)")
-    parser.add_argument("discord_token", help="discord bot authentication token")
-    parser.add_argument("discord_channel", type=int,  help="discord channel ID")
+    parser.add_argument("clippings_file", help="clippings file from Kindle device (/documents/My Clippings.txt)")
+    parser.add_argument("-l", "--list", action="store_true", help="list discovered books")
+    parser.add_argument("-s", "--send", action="store_true", help="send randomly selected highlights to a Discord channel")
+    parser.add_argument("-t", dest="discord_token", help="discord bot authentication token")
+    parser.add_argument("-c", dest="discord_channel", type=int,  help="discord channel ID")
     parser.add_argument("-n", type=int, default=3, dest="n_highlights", help="number of highlights to select (default: %(default)s)")
     parser.add_argument("-i", nargs='+', dest="ignored_books", help="titles of books to ignore")
 
-    args = parser.parse_args()
-    logging.info(f"Config: {vars(args)}")
-
-    ReadUnwiseClient().send()
+    _run()
