@@ -15,7 +15,8 @@ def _execute():
     elif args.action == EXPORT_ACTION:
         _export_book()
     elif args.action == SEND_ACTION:
-        client = DiscordClient(args.discord_channel, highlights_by_book, args.ignored_books, args.n_highlights)
+        ignored_books = [_arg_to_book(arg) for arg in args.ignored_books]
+        client = DiscordClient(args.discord_channel, highlights_by_book, ignored_books, args.n_highlights)
         client.send(args.discord_token)
 
 
@@ -38,11 +39,11 @@ def _load_highlights(clippings_file: str) -> dict:
 
 
 def _list_books():
-    [logging.info(f"({i + 1}) {book}") for i, book in enumerate(highlights_by_book.keys())]
+    [logging.info(f"{i + 1}: {book}") for i, book in enumerate(highlights_by_book.keys())]
 
 
 def _export_book():
-    book = args.book
+    book = _arg_to_book(args.book)
 
     if book not in highlights_by_book:
         logging.error(f"No highlights found for {book}")
@@ -59,6 +60,13 @@ def _export_book():
     logging.info(f"Exported {filename}")
 
 
+def _arg_to_book(arg: str):
+    if arg.isnumeric():
+        idx = int(arg) - 1
+        return list(highlights_by_book)[idx]
+    return arg
+
+
 if __name__ == "__main__":
     logging.basicConfig(format="%(asctime)s %(message)s", datefmt="%m/%d/%Y %I:%M:%S %p", level=logging.INFO)
     logging.getLogger("discord").setLevel(logging.ERROR)
@@ -70,13 +78,13 @@ if __name__ == "__main__":
     list_parser = subparsers.add_parser(LIST_ACTION, help="list books")
 
     export_parser = subparsers.add_parser(EXPORT_ACTION, help="export book highlights as markdown")
-    export_parser.add_argument("book", help="target book")
+    export_parser.add_argument("book", help="book title or index")
     export_parser.add_argument("export_dir", help="export directory")
 
     send_parser = subparsers.add_parser(SEND_ACTION, help="send randomly selected highlights to a Discord channel")
     send_parser.add_argument("discord_token", help="discord bot authentication token")
     send_parser.add_argument("discord_channel", type=int,  help="discord channel ID")
-    send_parser.add_argument("-i", nargs='+', dest="ignored_books", help="titles of books to ignore")
+    send_parser.add_argument("-i", nargs='+', dest="ignored_books", help="book titles or indices to ignore")
     send_parser.add_argument("-n", type=int, default=3, dest="n_highlights", help="number of highlights to select (default: %(default)s)")
 
     args = parser.parse_args()

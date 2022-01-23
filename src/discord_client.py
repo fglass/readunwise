@@ -11,8 +11,9 @@ class DiscordClient(Client):
         self._channel = None
         self._channel_id = channel_id
         self._highlights_by_book = highlights_by_book
-        self._ignored_books = ignored_books
+        self._ignored_books = ignored_books or []
         self._n_highlights = n_highlights
+        logging.info(f"Ignoring: {', '.join(ignored_books)}")
 
     def send(self, token: str):
         self.run(token)
@@ -20,7 +21,7 @@ class DiscordClient(Client):
     async def on_ready(self):
         self._channel = self.get_channel(self._channel_id)
 
-        logging.info("Sending message...")
+        logging.info(f"Sending {self._n_highlights} highlights...")
         await self._send_message()
 
         logging.info("Exiting...")
@@ -33,8 +34,7 @@ class DiscordClient(Client):
         await self._channel.send(embed=embed)
 
     def _get_random_book(self) -> str:
-        ignored_books = self._ignored_books or []
-        books = [book for book in self._highlights_by_book.keys() if book not in ignored_books]
+        books = [book for book in self._highlights_by_book.keys() if book not in self._ignored_books]
         return random.choice(books)
 
     def _select_highlights(self, book: str) -> list:

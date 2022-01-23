@@ -1,7 +1,6 @@
 ## readunwise
 
 A simple alternative to [Readwise](https://readwise.io/)
-
 ```
 usage: readunwise.py [-h] clippings_file {list,export,send} ...
 ```
