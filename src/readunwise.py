@@ -1,11 +1,12 @@
 import argparse
 import logging
 from highlight import Highlight
-from discord_client import DiscordClient
+from random_util import select_random_book, select_random_highlights
 
 CLIPPING_DELIMITER = "=========="
 LIST_ACTION = "list"
 EXPORT_ACTION = "export"
+RANDOM_ACTION = "random"
 SEND_ACTION = "send"
 
 
@@ -14,10 +15,10 @@ def _execute():
         _list_books()
     elif args.action == EXPORT_ACTION:
         _export_book()
+    elif args.action == RANDOM_ACTION:
+        _print_random_highlight()
     elif args.action == SEND_ACTION:
-        ignored_books = [_arg_to_book(arg) for arg in args.ignored_books]
-        client = DiscordClient(args.discord_channel, highlights_by_book, ignored_books, args.n_highlights)
-        client.send(args.discord_token)
+        _send_highlights_to_discord()
 
 
 def _load_highlights(clippings_file: str) -> dict:
@@ -33,7 +34,7 @@ def _load_highlights(clippings_file: str) -> dict:
             highlights.setdefault(highlight.book, []).append(highlight)
             loaded += 1
 
-    logging.info(f"Found {loaded} highlights across {len(highlights)} books")
+    logging.debug(f"Found {loaded} highlights across {len(highlights)} books")
 
     return highlights
 
@@ -60,6 +61,27 @@ def _export_book():
     logging.info(f"Exported {filename}")
 
 
+def _print_random_highlight():
+    ignored_books = _get_ignored_books()
+    random_book = select_random_book(highlights_by_book, ignored_books)
+
+    book_highlights = highlights_by_book[random_book]
+    selected_highlight = select_random_highlights(book_highlights, n=1)[0]
+
+    print(f"\"{selected_highlight.content}\"\n- {random_book}")
+
+
+def _send_highlights_to_discord():
+    from discord_client import DiscordClient
+    ignored_books = _get_ignored_books()
+    client = DiscordClient(args.discord_channel, highlights_by_book, ignored_books, args.n_highlights)
+    client.send(args.discord_token)
+
+
+def _get_ignored_books() -> list:
+    return [_arg_to_book(arg) for arg in args.ignored_books or []]
+
+
 def _arg_to_book(arg: str):
     if arg.isnumeric():
         idx = int(arg) - 1
@@ -77,11 +99,14 @@ if __name__ == "__main__":
     subparsers = parser.add_subparsers(dest="action")
     list_parser = subparsers.add_parser(LIST_ACTION, help="list books")
 
-    export_parser = subparsers.add_parser(EXPORT_ACTION, help="export book highlights as markdown")
+    export_parser = subparsers.add_parser(EXPORT_ACTION, help="export a book's highlights as markdown")
     export_parser.add_argument("book", help="book title or index")
     export_parser.add_argument("export_dir", help="export directory")
 
-    send_parser = subparsers.add_parser(SEND_ACTION, help="send randomly selected highlights to a Discord channel")
+    random_parser = subparsers.add_parser(RANDOM_ACTION, help="print a random highlight")
+    random_parser.add_argument("-i", nargs='+', dest="ignored_books", help="book titles or indices to ignore")
+
+    send_parser = subparsers.add_parser(SEND_ACTION, help="send random highlights to a Discord channel")
     send_parser.add_argument("discord_token", help="discord bot authentication token")
     send_parser.add_argument("discord_channel", type=int,  help="discord channel ID")
     send_parser.add_argument("-i", nargs='+', dest="ignored_books", help="book titles or indices to ignore")

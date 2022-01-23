@@ -1,6 +1,6 @@
 import logging
-import random
 from discord import Client, Embed
+from random_util import select_random_book, select_random_highlights
 
 MAX_FIELD_SIZE = 1024
 
@@ -11,7 +11,7 @@ class DiscordClient(Client):
         self._channel = None
         self._channel_id = channel_id
         self._highlights_by_book = highlights_by_book
-        self._ignored_books = ignored_books or []
+        self._ignored_books = ignored_books
         self._n_highlights = n_highlights
         logging.info(f"Ignoring: {', '.join(ignored_books)}")
 
@@ -28,19 +28,12 @@ class DiscordClient(Client):
         await self.close()
 
     async def _send_message(self):
-        random_book = self._get_random_book()
-        selected_highlights = self._select_highlights(random_book)
+        random_book = select_random_book(self._highlights_by_book, self._ignored_books)
+        book_highlights = self._highlights_by_book[random_book]
+        selected_highlights = select_random_highlights(book_highlights, self._n_highlights)
+
         embed = _create_embed(random_book, selected_highlights)
         await self._channel.send(embed=embed)
-
-    def _get_random_book(self) -> str:
-        books = [book for book in self._highlights_by_book.keys() if book not in self._ignored_books]
-        return random.choice(books)
-
-    def _select_highlights(self, book: str) -> list:
-        book_highlights = self._highlights_by_book[book]
-        n_highlights = min(len(book_highlights), self._n_highlights)
-        return random.sample(book_highlights, k=n_highlights)
 
 
 def _create_embed(book: str, highlights: list) -> Embed:
