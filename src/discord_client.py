@@ -1,4 +1,3 @@
-import logging
 from discord import Client, Embed
 from random_util import select_random_book, select_random_highlights
 
@@ -13,7 +12,7 @@ class DiscordClient(Client):
         self._highlights_by_book = highlights_by_book
         self._ignored_books = ignored_books
         self._n_highlights = n_highlights
-        logging.info(f"Ignoring: {', '.join(ignored_books)}")
+        print(f"Ignoring: {', '.join(ignored_books)}")
 
     def send(self, token: str):
         self.run(token)
@@ -21,10 +20,10 @@ class DiscordClient(Client):
     async def on_ready(self):
         self._channel = self.get_channel(self._channel_id)
 
-        logging.info(f"Sending {self._n_highlights} highlights...")
+        print(f"Sending {self._n_highlights} highlights...")
         await self._send_message()
 
-        logging.info("Exiting...")
+        print("Exiting...")
         await self.close()
 
     async def _send_message(self):

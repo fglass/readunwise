@@ -1,5 +1,4 @@
 import argparse
-import logging
 from highlight import Highlight
 from random_util import select_random_book, select_random_highlights
 
@@ -34,20 +33,18 @@ def _load_highlights(clippings_file: str) -> dict:
             highlights.setdefault(highlight.book, []).append(highlight)
             loaded += 1
 
-    logging.debug(f"Found {loaded} highlights across {len(highlights)} books")
-
     return highlights
 
 
 def _list_books():
-    [logging.info(f"{i + 1}: {book}") for i, book in enumerate(highlights_by_book.keys())]
+    [print(f"{i + 1}: {book}") for i, book in enumerate(highlights_by_book.keys())]
 
 
 def _export_book():
     book = _arg_to_book(args.book)
 
     if book not in highlights_by_book:
-        logging.error(f"No highlights found for {book}")
+        print(f"No highlights found for {book}")
         return
 
     sanitised_title = book.replace(":", "")
@@ -58,7 +55,7 @@ def _export_book():
         lines = [f"- {h.content}\n" for h in highlights]
         f.writelines(lines)
 
-    logging.info(f"Exported {filename}")
+    print(f"Exported {filename}")
 
 
 def _print_random_highlight():
@@ -90,9 +87,6 @@ def _arg_to_book(arg: str):
 
 
 if __name__ == "__main__":
-    logging.basicConfig(format="%(asctime)s %(message)s", datefmt="%m/%d/%Y %I:%M:%S %p", level=logging.INFO)
-    logging.getLogger("discord").setLevel(logging.ERROR)
-
     parser = argparse.ArgumentParser(description="A simple alternative to Readwise.")
     parser.add_argument("clippings_file", help="clippings file from Kindle device (/documents/My Clippings.txt)")
 
@@ -118,4 +112,4 @@ if __name__ == "__main__":
         highlights_by_book = _load_highlights(args.clippings_file)
         _execute()
     else:
-        logging.error("Invalid arguments, see --help")
+        print("Invalid arguments, see --help")
