@@ -23,4 +23,4 @@ Send random highlights to a Discord channel. This can be run as a cron job e.g. 
 
 `0 9 * * * python3 home/pi/readunwise/src/readunwise.py <file> send <args>`
 
-![Example Message](example-message.png)
+![Example](example.png)

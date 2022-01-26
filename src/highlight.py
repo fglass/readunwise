@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
 HIGHLIGHT_TOKEN = "- Your Highlight "
+TRAILING_PUNCTUATION = {".", ","}
 
 
 @dataclass
@@ -17,15 +18,20 @@ class Highlight:
         try:
             parts = [part for part in clipping.split("\n") if part != ""]
 
-            book_title = parts.pop(0)
-            description = parts.pop(0)
+            first_part = parts.pop(0)
+            second_part = parts.pop(0)
             content = "\n".join(parts)
 
-            book_title = book_title.rstrip()
-            description = description.replace(HIGHLIGHT_TOKEN, "")
-            content = content.capitalize()
+            book_title = first_part.rstrip()
+            metadata = second_part.replace(HIGHLIGHT_TOKEN, "")
 
-            return Highlight(book_title, description, content)
+            return Highlight(book_title, metadata, _format_content(content))
 
         except IndexError:
             return None
+
+
+def _format_content(content: str) -> str:
+    length = len(content)
+    last_index = length if content[-1] not in TRAILING_PUNCTUATION else length - 1
+    return content[0].upper() + content[1:last_index]
