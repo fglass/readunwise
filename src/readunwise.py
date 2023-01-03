@@ -6,7 +6,7 @@ CLIPPING_DELIMITER = "=========="
 LIST_ACTION = "list"
 EXPORT_ACTION = "export"
 RANDOM_ACTION = "random"
-SEND_ACTION = "send"
+DISCORD_ACTION = "discord"
 
 
 def _execute():
@@ -16,7 +16,7 @@ def _execute():
         _export_book()
     elif args.action == RANDOM_ACTION:
         _print_random_highlight()
-    elif args.action == SEND_ACTION:
+    elif args.action == DISCORD_ACTION:
         _send_highlights_to_discord()
 
 
@@ -88,7 +88,11 @@ def _arg_to_book(arg: str):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="A simple alternative to Readwise.")
-    parser.add_argument("clippings_file", help="clippings file from Kindle device (/documents/My Clippings.txt)")
+    parser.add_argument(
+        "--clippings_file",
+        default=r"D:\documents\My Clippings.txt",
+        help="clippings file from Kindle device (default: %(default)s)"
+    )
 
     subparsers = parser.add_subparsers(dest="action")
     list_parser = subparsers.add_parser(LIST_ACTION, help="list books")
@@ -100,11 +104,17 @@ if __name__ == "__main__":
     random_parser = subparsers.add_parser(RANDOM_ACTION, help="print a random highlight")
     random_parser.add_argument("-i", nargs='+', dest="ignored_books", help="book titles or indices to ignore")
 
-    send_parser = subparsers.add_parser(SEND_ACTION, help="send random highlights to a Discord channel")
+    send_parser = subparsers.add_parser(DISCORD_ACTION, help="send random highlights to a Discord channel")
     send_parser.add_argument("discord_token", help="discord bot authentication token")
     send_parser.add_argument("discord_channel", type=int,  help="discord channel ID")
     send_parser.add_argument("-i", nargs='+', dest="ignored_books", help="book titles or indices to ignore")
-    send_parser.add_argument("-n", type=int, default=3, dest="n_highlights", help="number of highlights to select (default: %(default)s)")
+    send_parser.add_argument(
+        "-n",
+        type=int,
+        default=3,
+        dest="n_highlights",
+        help="number of highlights to select (default: %(default)s)"
+    )
 
     args = parser.parse_args()
 
