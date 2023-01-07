@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Optional
 
 HIGHLIGHT_TOKEN = "- Your Highlight "
 TRAILING_PUNCTUATION = {".", ","}
@@ -6,12 +7,12 @@ TRAILING_PUNCTUATION = {".", ","}
 
 @dataclass
 class Highlight:
-    book: str
-    metadata: str
-    content: str
+    book: str = ""
+    metadata: str = ""
+    content: str = ""
 
     @staticmethod
-    def create(clipping: str):
+    def create(clipping: str) -> Optional['Highlight']:
         if HIGHLIGHT_TOKEN not in clipping:
             return None
 
@@ -29,6 +30,9 @@ class Highlight:
 
         except IndexError:
             return None
+
+    def is_related(self, other: 'Highlight') -> bool:
+        return self.book == other.book and (self.content in other.content or other.content in self.content)
 
 
 def _format_content(content: str) -> str:

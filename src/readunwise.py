@@ -1,6 +1,8 @@
 import argparse
+from collections import defaultdict
 from highlight import Highlight
 from random_util import select_random_book, select_random_highlights
+from typing import List
 
 CLIPPING_DELIMITER = "=========="
 LIST_ACTION = "list"
@@ -20,18 +22,28 @@ def _execute():
         _send_highlights_to_discord()
 
 
-def _load_highlights(clippings_file: str) -> dict:
-    highlights = {}
-    loaded = 0
-
+def _parse_clippings_file(clippings_file: str) -> dict:
     with open(clippings_file, "r+", encoding="utf8") as f:
         clippings = f.read().split(CLIPPING_DELIMITER)
 
+    return _load_highlights(clippings)
+
+
+def _load_highlights(clippings: List[str]) -> dict:
+    highlights = defaultdict(list)
+    prev_highlight = Highlight()
+
     for clipping in clippings:
         highlight = Highlight.create(clipping)
-        if highlight is not None:
-            highlights.setdefault(highlight.book, []).append(highlight)
-            loaded += 1
+
+        if highlight is None:
+            continue
+
+        if highlight.is_related(prev_highlight):  # Remove previous if subset or superset
+            highlights[prev_highlight.book].pop()
+
+        highlights[highlight.book].append(highlight)
+        prev_highlight = highlight
 
     return highlights
 
@@ -75,11 +87,11 @@ def _send_highlights_to_discord():
     client.send(args.discord_token)
 
 
-def _get_ignored_books() -> list:
+def _get_ignored_books() -> List[str]:
     return [_arg_to_book(arg) for arg in args.ignored_books or []]
 
 
-def _arg_to_book(arg: str):
+def _arg_to_book(arg: str) -> str:
     if arg.isnumeric():
         idx = int(arg) - 1
         return list(highlights_by_book)[idx]
@@ -119,7 +131,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.action is not None:
-        highlights_by_book = _load_highlights(args.clippings_file)
+        highlights_by_book = _parse_clippings_file(args.clippings_file)
         _execute()
     else:
         print("Invalid arguments, see --help")
