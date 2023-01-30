@@ -1,97 +1,79 @@
-import argparse
-from collections import defaultdict
-from highlight import Highlight
+import click
+from click import Context
+from clippings import parse_clippings_file
 from random_util import select_random_book, select_random_highlights
-from typing import List
-
-CLIPPING_DELIMITER = "=========="
-LIST_ACTION = "list"
-EXPORT_ACTION = "export"
-RANDOM_ACTION = "random"
-DISCORD_ACTION = "discord"
+from typing import List, Tuple
 
 
-def _execute():
-    if args.action == LIST_ACTION:
-        _list_books()
-    elif args.action == EXPORT_ACTION:
-        _export_book()
-    elif args.action == RANDOM_ACTION:
-        _print_random_highlight()
-    elif args.action == DISCORD_ACTION:
-        _send_highlights_to_discord()
+@click.group()
+@click.option("--clippings_file", default=r"D:\documents\My Clippings.txt", help="Clippings file from Kindle device.")
+@click.pass_context
+def cli(ctx: Context, clippings_file: str):
+    ctx.ensure_object(dict)
+    ctx.obj["highlights"] = parse_clippings_file(clippings_file)
 
 
-def _parse_clippings_file(clippings_file: str) -> dict:
-    with open(clippings_file, "r+", encoding="utf8") as f:
-        clippings = f.read().split(CLIPPING_DELIMITER)
-
-    return _load_highlights(clippings)
-
-
-def _load_highlights(clippings: List[str]) -> dict:
-    highlights = defaultdict(list)
-    prev_highlight = Highlight()
-
-    for clipping in clippings:
-        highlight = Highlight.create(clipping)
-
-        if highlight is None:
-            continue
-
-        if highlight.is_related(prev_highlight):  # Remove previous if subset or superset
-            highlights[prev_highlight.book].pop()
-
-        highlights[highlight.book].append(highlight)
-        prev_highlight = highlight
-
-    return highlights
-
-
-def _list_books():
+@cli.command(help="List books found in the clippings file.")
+@click.pass_context
+def ls(ctx: Context):
+    highlights_by_book = _get_highlights_by_book(ctx)
     [print(f"{i + 1}: {book}") for i, book in enumerate(highlights_by_book.keys())]
 
 
-def _export_book():
-    book = _arg_to_book(args.book)
+@cli.command(help="Display highlights from a book.")
+@click.argument("book")
+@click.pass_context
+def cat(ctx: Context, book: str):
+    highlights_by_book = _get_highlights_by_book(ctx)
+    book = _arg_to_book(book, highlights_by_book)
 
     if book not in highlights_by_book:
         print(f"No highlights found for {book}")
         return
 
-    sanitised_title = book.replace(":", "")
-    filename = f"{args.export_dir}/{sanitised_title}.md"
-
-    with open(filename, "w+", encoding="utf8") as f:
-        highlights = highlights_by_book[book]
-        lines = [f"- {h.content}\n" for h in highlights]
-        f.writelines(lines)
-
-    print(f"Exported {filename}")
+    for highlight in highlights_by_book[book]:
+        print(f"- {highlight.content}")
 
 
-def _print_random_highlight():
-    ignored_books = _get_ignored_books()
+@cli.command(help="Print a random highlight.")
+@click.option("--ignore", "-i", multiple=True, help="Book title or index to ignore.")
+@click.pass_context
+def random(ctx: Context, ignore: Tuple[str]):
+    highlights_by_book = _get_highlights_by_book(ctx)
+    ignored_books = _get_ignored_books(highlights_by_book, ignore)
     random_book = select_random_book(highlights_by_book, ignored_books)
 
     book_highlights = highlights_by_book[random_book]
     selected_highlight = select_random_highlights(book_highlights, n=1)[0]
 
-    print(f"\"{selected_highlight.content}\"\n- {random_book}")
+    print("-" * 50)
+    print(f"{selected_highlight.content}\n\n- {random_book}")
+    print("-" * 50)
 
 
-def _send_highlights_to_discord():
+@cli.command(help="Send random highlights to a Discord channel.")
+@click.argument("auth_token")
+@click.argument("channel_id", type=click.INT)
+@click.option("--count", "-c", default=3, help="Number of highlights to select (default: 3).")
+@click.option("--ignore", "-i", multiple=True, help="Book title or index to ignore.")
+@click.pass_context
+def discord(ctx: Context, auth_token: str, channel_id: int, count: int, ignore: Tuple[str]):
     from discord_client import DiscordClient
-    ignored_books = _get_ignored_books()
-    client = DiscordClient(args.discord_channel, highlights_by_book, ignored_books, args.n_highlights)
-    client.send(args.discord_token)
+    highlights_by_book = _get_highlights_by_book(ctx)
+    ignored_books = _get_ignored_books(highlights_by_book, ignore)
+    client = DiscordClient(channel_id, highlights_by_book, count, ignored_books)
+    client.send(auth_token)
 
 
-def _get_ignored_books() -> List[str]:
-    return [_arg_to_book(arg) for arg in args.ignored_books or []]
+def _get_highlights_by_book(ctx: Context) -> dict:
+    return ctx.obj["highlights"]
 
 
-def _arg_to_book(arg: str) -> str:
+def _get_ignored_books(highlights_by_book: dict, ignore_args: Tuple[str]) -> List[str]:
+    return [_arg_to_book(arg, highlights_by_book) for arg in ignore_args]
+
+
+def _arg_to_book(arg: str, highlights_by_book: dict) -> str:
     if arg.isnumeric():
         idx = int(arg) - 1
         return list(highlights_by_book)[idx]
@@ -99,39 +81,4 @@ def _arg_to_book(arg: str) -> str:
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="A simple alternative to Readwise.")
-    parser.add_argument(
-        "--clippings_file",
-        default=r"D:\documents\My Clippings.txt",
-        help="clippings file from Kindle device (default: %(default)s)"
-    )
-
-    subparsers = parser.add_subparsers(dest="action")
-    list_parser = subparsers.add_parser(LIST_ACTION, help="list books")
-
-    export_parser = subparsers.add_parser(EXPORT_ACTION, help="export a book's highlights as markdown")
-    export_parser.add_argument("book", help="book title or index")
-    export_parser.add_argument("export_dir", help="export directory")
-
-    random_parser = subparsers.add_parser(RANDOM_ACTION, help="print a random highlight")
-    random_parser.add_argument("-i", nargs='+', dest="ignored_books", help="book titles or indices to ignore")
-
-    send_parser = subparsers.add_parser(DISCORD_ACTION, help="send random highlights to a Discord channel")
-    send_parser.add_argument("discord_token", help="discord bot authentication token")
-    send_parser.add_argument("discord_channel", type=int,  help="discord channel ID")
-    send_parser.add_argument("-i", nargs='+', dest="ignored_books", help="book titles or indices to ignore")
-    send_parser.add_argument(
-        "-n",
-        type=int,
-        default=3,
-        dest="n_highlights",
-        help="number of highlights to select (default: %(default)s)"
-    )
-
-    args = parser.parse_args()
-
-    if args.action is not None:
-        highlights_by_book = _parse_clippings_file(args.clippings_file)
-        _execute()
-    else:
-        print("Invalid arguments, see --help")
+    cli()

@@ -1,5 +1,5 @@
 import random
-from src.highlight import Highlight
+from highlight import Highlight
 from typing import List
 
 

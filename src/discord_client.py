@@ -1,18 +1,18 @@
-from discord import Client, Embed
+from discord import Client, Embed, Intents
 from random_util import select_random_book, select_random_highlights
+from typing import List
 
 MAX_FIELD_SIZE = 1024
 
 
 class DiscordClient(Client):
-    def __init__(self, channel_id: int, highlights_by_book: dict, ignored_books: list, n_highlights: int):
-        super().__init__()
+    def __init__(self, channel_id: int, highlights_by_book: dict, n_highlights: int, ignored_books: List[str]):
+        super().__init__(intents=Intents.default())
         self._channel = None
         self._channel_id = channel_id
         self._highlights_by_book = highlights_by_book
-        self._ignored_books = ignored_books
         self._n_highlights = n_highlights
-        print(f"Ignoring: {', '.join(ignored_books)}")
+        self._ignored_books = ignored_books
 
     def send(self, token: str):
         self.run(token)
