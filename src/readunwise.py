@@ -7,11 +7,12 @@ from random_util import select_random_book, select_random_highlights
 from rich import print as rprint
 from rich.panel import Panel
 from rich.table import Table
+from shutil import copyfile
 from typing import List, Tuple
 
 DEFAULT_KINDLE_DIR = r"/Volumes/Kindle/" if platform.system() == "Darwin" else r"D:/"
 DEFAULT_CLIPPINGS_FILE_PATH = Path(f"{DEFAULT_KINDLE_DIR}/documents/My Clippings.txt")
-DEFAULT_SAVE_PATH = Path.home() / ".readunwise.txt"
+DEFAULT_OUTPUT_PATH = Path.home() / ".readunwise.txt"
 
 
 @click.group()
@@ -19,6 +20,7 @@ DEFAULT_SAVE_PATH = Path.home() / ".readunwise.txt"
 @click.pass_context
 def cli(ctx: Context, clippings_file: str):
     ctx.ensure_object(dict)
+    ctx.obj["clippings_file"] = clippings_file
     ctx.obj["highlights"] = parse_clippings_file(clippings_file)
 
 
@@ -53,15 +55,15 @@ def cat(ctx: Context, book: str):
 
 
 @cli.command(help="Compare highlights between clippings files.")
-@click.argument("old_clippings_file", default=DEFAULT_SAVE_PATH)
+@click.argument("old_clippings_file", default=DEFAULT_OUTPUT_PATH)
 @click.pass_context
 def diff(ctx: Context, old_clippings_file: str):
     highlights_by_book = _get_highlights_by_book(ctx)
     old_highlights_by_book = parse_clippings_file(old_clippings_file)
 
     for book in highlights_by_book:
-        old_highlights = set(old_highlights_by_book.get(book, []))
         new_highlights = highlights_by_book[book]
+        old_highlights = set(old_highlights_by_book.get(book, []))
 
         if len(new_highlights) <= len(old_highlights):
             continue
@@ -71,6 +73,14 @@ def diff(ctx: Context, old_clippings_file: str):
         for highlight in highlights_by_book[book]:
             if highlight not in old_highlights:
                 rprint(f"[magenta]-[/] {highlight.content}")
+
+
+@cli.command(help="Copy clippings file.")
+@click.argument("dst", default=DEFAULT_OUTPUT_PATH)
+@click.pass_context
+def cp(ctx: Context, dst: str):
+    copyfile(src=ctx.obj["clippings_file"], dst=dst)
+    rprint(f"Copied clippings file to [b magenta]{dst}")
 
 
 @cli.command(help="Print a random highlight.")
