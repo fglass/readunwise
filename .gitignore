@@ -2,5 +2,6 @@
 .pytest_cache/
 __pycache__/
 venv/
+.DS_STORE
 *.sh
-My Clippings.txt
+My Clippings*.txt

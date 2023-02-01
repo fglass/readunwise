@@ -2,18 +2,20 @@ import click
 import platform
 from click import Context
 from clippings import parse_clippings_file
+from pathlib import Path
 from random_util import select_random_book, select_random_highlights
 from rich import print as rprint
 from rich.panel import Panel
 from rich.table import Table
 from typing import List, Tuple
 
-DEFAULT_KINDLE_PATH = r"/Volumes/Kindle/" if platform.system() == "Darwin" else r"D:\\"
-DEFAULT_CLIPPINGS_FILE = rf"{DEFAULT_KINDLE_PATH}/documents/My Clippings.txt"
+DEFAULT_KINDLE_DIR = r"/Volumes/Kindle/" if platform.system() == "Darwin" else r"D:/"
+DEFAULT_CLIPPINGS_FILE_PATH = Path(f"{DEFAULT_KINDLE_DIR}/documents/My Clippings.txt")
+DEFAULT_SAVE_PATH = Path.home() / ".readunwise.txt"
 
 
 @click.group()
-@click.option("--clippings_file", default=DEFAULT_CLIPPINGS_FILE, help="Clippings file from Kindle device.")
+@click.option("--clippings_file", default=DEFAULT_CLIPPINGS_FILE_PATH, help="Clippings file from Kindle device.")
 @click.pass_context
 def cli(ctx: Context, clippings_file: str):
     ctx.ensure_object(dict)
@@ -29,7 +31,7 @@ def ls(ctx: Context):
 
     highlights_by_book = _get_highlights_by_book(ctx)
 
-    for i, book in enumerate(highlights_by_book.keys()):
+    for i, book in enumerate(highlights_by_book):
         table.add_row(str(i + 1), book)
 
     rprint(table)
@@ -48,6 +50,27 @@ def cat(ctx: Context, book: str):
 
     for highlight in highlights_by_book[book]:
         rprint(f"[magenta]-[/] {highlight.content}")
+
+
+@cli.command(help="Compare highlights between clippings files.")
+@click.argument("old_clippings_file", default=DEFAULT_SAVE_PATH)
+@click.pass_context
+def diff(ctx: Context, old_clippings_file: str):
+    highlights_by_book = _get_highlights_by_book(ctx)
+    old_highlights_by_book = parse_clippings_file(old_clippings_file)
+
+    for book in highlights_by_book:
+        old_highlights = set(old_highlights_by_book.get(book, []))
+        new_highlights = highlights_by_book[book]
+
+        if len(new_highlights) <= len(old_highlights):
+            continue
+
+        rprint(f"[b cyan]{book}")
+
+        for highlight in highlights_by_book[book]:
+            if highlight not in old_highlights:
+                rprint(f"[magenta]-[/] {highlight.content}")
 
 
 @cli.command(help="Print a random highlight.")
@@ -72,9 +95,10 @@ def random(ctx: Context, ignore: Tuple[str]):
 @click.option("--ignore", "-i", multiple=True, help="Book title or index to ignore.")
 @click.pass_context
 def discord(ctx: Context, auth_token: str, channel_id: int, count: int, ignore: Tuple[str]):
-    from discord_client import DiscordClient
     highlights_by_book = _get_highlights_by_book(ctx)
     ignored_books = _get_ignored_books(highlights_by_book, ignore)
+
+    from discord_client import DiscordClient
     client = DiscordClient(channel_id, highlights_by_book, count, ignored_books)
     client.send(auth_token)
 

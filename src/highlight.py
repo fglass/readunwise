@@ -5,7 +5,7 @@ HIGHLIGHT_TOKEN = "- Your Highlight "
 TRAILING_PUNCTUATION = {".", ","}
 
 
-@dataclass
+@dataclass(frozen=True)
 class Highlight:
     book: str = ""
     metadata: str = ""
