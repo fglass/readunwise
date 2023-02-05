@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "readunwise"
+version = "0.0.1"
+authors = [
+  { name="Fred Glass", email="fred@fred.glass" },
+]
+description = "CLI for managing Amazon Kindle highlights"
+readme = "README.md"
+dependencies = [
+    "click==8.1.3",
+    "discord==2.1.0",
+    "rich==13.3.1",
+]
+
+[project.scripts]
+readunwise = "readunwise.cli:cli"

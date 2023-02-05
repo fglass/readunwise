@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from typing import Optional
 
 HIGHLIGHT_TOKEN = "- Your Highlight "
+NOTE_TOKEN = "- Your Note "
 TRAILING_PUNCTUATION = {".", ","}
 
 
@@ -13,7 +14,7 @@ class Highlight:
 
     @staticmethod
     def create(clipping: str) -> Optional['Highlight']:
-        if HIGHLIGHT_TOKEN not in clipping:
+        if HIGHLIGHT_TOKEN not in clipping and NOTE_TOKEN not in clipping:
             return None
 
         try:

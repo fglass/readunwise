@@ -1,9 +1,9 @@
 import click
 import platform
 from click import Context
-from clippings import parse_clippings_file
 from pathlib import Path
-from random_util import select_random_book, select_random_highlights
+from readunwise.clippings import parse_clippings_file
+from readunwise.random_util import select_random_book, select_random_highlights
 from rich import print as rprint
 from rich.panel import Panel
 from rich.table import Table
@@ -12,7 +12,7 @@ from typing import List, Tuple
 
 DEFAULT_KINDLE_DIR = r"/Volumes/Kindle/" if platform.system() == "Darwin" else r"D:/"
 DEFAULT_CLIPPINGS_FILE_PATH = Path(f"{DEFAULT_KINDLE_DIR}/documents/My Clippings.txt")
-DEFAULT_OUTPUT_PATH = Path.home() / ".readunwise.txt"
+DEFAULT_OUTPUT_PATH = Path.home() / ".readunwise"
 
 
 @click.group()
@@ -54,7 +54,7 @@ def cat(ctx: Context, book: str):
         rprint(f"[magenta]-[/] {highlight.content}")
 
 
-@cli.command(help="Compare highlights between clippings files.")
+@cli.command(help="Compare clippings files.")
 @click.argument("old_clippings_file", default=DEFAULT_OUTPUT_PATH)
 @click.pass_context
 def diff(ctx: Context, old_clippings_file: str):
@@ -68,7 +68,7 @@ def diff(ctx: Context, old_clippings_file: str):
         if len(new_highlights) <= len(old_highlights):
             continue
 
-        rprint(f"[b cyan]{book}")
+        rprint(f"\n[b cyan]{book}")
 
         for highlight in highlights_by_book[book]:
             if highlight not in old_highlights:

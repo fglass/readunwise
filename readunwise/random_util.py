@@ -1,5 +1,5 @@
 import random
-from highlight import Highlight
+from readunwise.highlight import Highlight
 from typing import List
 
 

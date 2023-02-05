@@ -1,7 +1,9 @@
 .idea/
 .pytest_cache/
 __pycache__/
+dist/
 venv/
 .DS_STORE
 *.sh
+*.egg-info
 My Clippings*.txt

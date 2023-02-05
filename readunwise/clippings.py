@@ -1,5 +1,5 @@
 from collections import defaultdict
-from highlight import Highlight
+from readunwise.highlight import Highlight
 from typing import List
 
 CLIPPING_DELIMITER = "=========="
