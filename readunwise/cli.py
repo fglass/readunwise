@@ -4,7 +4,7 @@ from click import Context
 from pathlib import Path
 from readunwise.clippings import parse_clippings_file
 from readunwise.random_util import select_random_book, select_random_highlights
-from rich import print as rprint
+from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 from shutil import copyfile
@@ -13,6 +13,8 @@ from typing import List, Tuple
 DEFAULT_KINDLE_DIR = r"/Volumes/Kindle/" if platform.system() == "Darwin" else r"D:/"
 DEFAULT_CLIPPINGS_FILE_PATH = Path(f"{DEFAULT_KINDLE_DIR}/documents/My Clippings.txt")
 DEFAULT_OUTPUT_PATH = Path.home() / ".readunwise"
+
+console = Console(highlight=False, soft_wrap=True)
 
 
 @click.group()
@@ -28,15 +30,15 @@ def cli(ctx: Context, clippings_file: str):
 @click.pass_context
 def ls(ctx: Context):
     table = Table()
-    table.add_column("Index", justify="center", style="magenta")
-    table.add_column("Book Title")
+    table.add_column("Index", justify="center", style="magenta"),
+    table.add_column("Title")
 
     highlights_by_book = _get_highlights_by_book(ctx)
 
     for i, book in enumerate(highlights_by_book):
         table.add_row(str(i + 1), book)
 
-    rprint(table)
+    console.print(table)
 
 
 @cli.command(help="Display highlights from a book.")
@@ -47,11 +49,11 @@ def cat(ctx: Context, book: str):
     book = _arg_to_book(book, highlights_by_book)
 
     if book not in highlights_by_book:
-        rprint(f"[b red]No highlights found for {book}")
+        console.print(f"[b red]No highlights found for {book}")
         return
 
     for highlight in highlights_by_book[book]:
-        rprint(f"[magenta]-[/] {highlight.content}")
+        console.print(f"[magenta]-[/] {highlight.content}")
 
 
 @cli.command(help="Compare clippings files.")
@@ -68,11 +70,11 @@ def diff(ctx: Context, old_clippings_file: str):
         if len(new_highlights) <= len(old_highlights):
             continue
 
-        rprint(f"\n[b cyan]{book}")
+        console.print(f"\n[b cyan]{book}")
 
         for highlight in highlights_by_book[book]:
             if highlight not in old_highlights:
-                rprint(f"[magenta]-[/] {highlight.content}")
+                console.print(f"[magenta]-[/] {highlight.content}")
 
 
 @cli.command(help="Copy clippings file.")
@@ -80,7 +82,7 @@ def diff(ctx: Context, old_clippings_file: str):
 @click.pass_context
 def cp(ctx: Context, dst: str):
     copyfile(src=ctx.obj["clippings_file"], dst=dst)
-    rprint(f"Copied clippings file to [b magenta]{dst}")
+    console.print(f"Copied clippings file to [b magenta]{dst}")
 
 
 @cli.command(help="Print a random highlight.")
@@ -95,7 +97,7 @@ def random(ctx: Context, ignore: Tuple[str]):
     selected_highlight = select_random_highlights(book_highlights, n=1)[0]
 
     panel = Panel.fit(f"[b magenta]{selected_highlight.content}[/]\n\n- {random_book}")
-    rprint(panel)
+    console.print(panel)
 
 
 @cli.command(help="Send random highlights to a Discord channel.")
