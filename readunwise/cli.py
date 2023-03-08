@@ -19,11 +19,12 @@ console = Console(highlight=False, soft_wrap=True)
 
 @click.group()
 @click.option("--clippings_file", default=DEFAULT_CLIPPINGS_FILE_PATH, help="Clippings file from Kindle device.")
+@click.option("--usr", is_flag=True, help=f"Use default file in user directory")
 @click.pass_context
-def cli(ctx: Context, clippings_file: str):
+def cli(ctx: Context, clippings_file: str, usr: bool):
     ctx.ensure_object(dict)
-    ctx.obj["clippings_file"] = clippings_file
-    ctx.obj["highlights"] = parse_clippings_file(clippings_file)
+    ctx.obj["clippings_file"] = DEFAULT_OUTPUT_PATH if usr else clippings_file
+    ctx.obj["highlights"] = parse_clippings_file(ctx.obj["clippings_file"])
 
 
 @cli.command(help="List books found in the clippings file.")
@@ -81,7 +82,8 @@ def diff(ctx: Context, old_clippings_file: str):
 @click.argument("dst", default=DEFAULT_OUTPUT_PATH)
 @click.pass_context
 def cp(ctx: Context, dst: str):
-    copyfile(src=ctx.obj["clippings_file"], dst=dst)
+    src = ctx.obj["clippings_file"]
+    copyfile(src, dst)
     console.print(f"Copied clippings file to [b magenta]{dst}")
 
 
