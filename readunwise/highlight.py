@@ -33,10 +33,15 @@ class Highlight:
             return None
 
     def is_related(self, other: 'Highlight') -> bool:
-        return self.book == other.book and (self.content in other.content or other.content in self.content)
+        return self.book == other.book and \
+               (_is_content_related(self.content, other.content) or _is_content_related(other.content, self.content))
 
 
 def _format_content(content: str) -> str:
     length = len(content)
     last_index = length if content[-1] not in TRAILING_PUNCTUATION else length - 1
     return content[0].upper() + content[1:last_index]
+
+
+def _is_content_related(c1: str, c2: str) -> bool:
+    return c1.lower() in c2.lower()
