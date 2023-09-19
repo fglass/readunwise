@@ -88,12 +88,18 @@ def save(ctx: Context, dst: str):
 
 
 @cli.command(help="Print a random highlight.")
+@click.option("--book", "-b", is_flag=True, help="Print all highlights from a random book.")
 @click.option("--ignore", "-i", multiple=True, help="Book title or index to ignore.")
 @click.pass_context
-def random(ctx: Context, ignore: Tuple[str]):
+def random(ctx: Context, book: bool, ignore: Tuple[str]):
     highlights_by_book = _get_highlights_by_book(ctx)
     ignored_books = _get_ignored_books(highlights_by_book, ignore)
     random_book = select_random_book(highlights_by_book, ignored_books)
+
+    if book:
+        console.print(random_book)
+        ctx.invoke(cat, book=random_book)
+        return
 
     book_highlights = highlights_by_book[random_book]
     selected_highlight = select_random_highlights(book_highlights, n=1)[0]
