@@ -11,7 +11,7 @@ pip install readunwise
 | ls      | List books found in the clippings file      |
 | cat     | Display highlights from a book              |
 | diff    | Compare clippings files                     |
-| cp      | Copy clippings file                         |
+| save    | Save clippings file                         |
 | random  | Print a random highlight                    |
 | discord | Send random highlights to a Discord channel |
 

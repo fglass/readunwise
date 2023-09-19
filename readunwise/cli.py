@@ -19,7 +19,7 @@ console = Console(highlight=False, soft_wrap=True)
 
 @click.group()
 @click.option("--clippings_file", default=DEFAULT_CLIPPINGS_FILE_PATH, help="Clippings file from Kindle device.")
-@click.option("--usr", is_flag=True, help=f"Use default file in user directory")
+@click.option("--usr", is_flag=True, help="Use default file in user directory")
 @click.pass_context
 def cli(ctx: Context, clippings_file: str, usr: bool):
     ctx.ensure_object(dict)
@@ -78,13 +78,13 @@ def diff(ctx: Context, old_clippings_file: str):
                 console.print(f"[magenta]-[/] {highlight.content}")
 
 
-@cli.command(help="Copy clippings file.")
+@cli.command(help="Save clippings file.")
 @click.argument("dst", default=DEFAULT_OUTPUT_PATH)
 @click.pass_context
-def cp(ctx: Context, dst: str):
+def save(ctx: Context, dst: str):
     src = ctx.obj["clippings_file"]
     copyfile(src, dst)
-    console.print(f"Copied clippings file to [b magenta]{dst}")
+    console.print(f"Saved clippings file to [b magenta]{dst}")
 
 
 @cli.command(help="Print a random highlight.")
