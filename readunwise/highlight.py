@@ -11,10 +11,14 @@ class Highlight:
     book: str = ""
     metadata: str = ""
     content: str = ""
+    is_note: bool = False
 
     @staticmethod
-    def create(clipping: str) -> Optional['Highlight']:
-        if HIGHLIGHT_TOKEN not in clipping and NOTE_TOKEN not in clipping:
+    def create(clipping: str) -> Optional["Highlight"]:
+        is_highlight = HIGHLIGHT_TOKEN in clipping
+        is_note = NOTE_TOKEN in clipping
+
+        if not is_highlight and not is_note:
             return None
 
         try:
@@ -25,16 +29,18 @@ class Highlight:
             content = "\n".join(parts)
 
             book_title = first_part.rstrip()
-            metadata = second_part.replace(HIGHLIGHT_TOKEN, "")
+            metadata = second_part.replace(HIGHLIGHT_TOKEN, "").replace(NOTE_TOKEN, "")
 
-            return Highlight(book_title, metadata, _format_content(content))
+            return Highlight(book_title, metadata, _format_content(content), is_note)
 
         except IndexError:
             return None
 
-    def is_related(self, other: 'Highlight') -> bool:
-        return self.book == other.book and \
-               (_is_content_related(self.content, other.content) or _is_content_related(other.content, self.content))
+    def is_related(self, other: "Highlight") -> bool:
+        return self.book == other.book and (
+            _is_content_related(self.content, other.content)
+            or _is_content_related(other.content, self.content)
+        )
 
 
 def _format_content(content: str) -> str:

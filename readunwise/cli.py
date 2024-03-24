@@ -3,6 +3,7 @@ import platform
 from click import Context
 from pathlib import Path
 from readunwise.clippings import parse_clippings_file
+from readunwise.highlight import Highlight
 from readunwise.random_util import select_random_book, select_random_highlights
 from rich.console import Console
 from rich.panel import Panel
@@ -18,7 +19,11 @@ console = Console(highlight=False, soft_wrap=True)
 
 
 @click.group()
-@click.option("--clippings_file", default=DEFAULT_CLIPPINGS_FILE_PATH, help="Clippings file from Kindle device.")
+@click.option(
+    "--clippings_file",
+    default=DEFAULT_CLIPPINGS_FILE_PATH,
+    help="Clippings file from Kindle device.",
+)
 @click.option("--usr", is_flag=True, help="Use default file in user directory")
 @click.pass_context
 def cli(ctx: Context, clippings_file: str, usr: bool):
@@ -54,7 +59,8 @@ def cat(ctx: Context, book: str):
         return
 
     for highlight in highlights_by_book[book]:
-        console.print(f"[magenta]-[/] {highlight.content}")
+        prefix = ">" if highlight.is_note else "-"
+        console.print(f"[magenta]{prefix}[/] {highlight.content}")
 
 
 @cli.command(help="Compare clippings files.")
@@ -88,10 +94,12 @@ def save(ctx: Context, dst: str):
 
 
 @cli.command(help="Print a random highlight.")
-@click.option("--book", "-b", is_flag=True, help="Print all highlights from a random book.")
+@click.option(
+    "--book", "-b", is_flag=True, help="Print all highlights from a random book."
+)
 @click.option("--ignore", "-i", multiple=True, help="Book title or index to ignore.")
 @click.pass_context
-def random(ctx: Context, book: bool, ignore: Tuple[str]):
+def random(ctx: Context, book: bool, ignore: tuple[str]):
     highlights_by_book = _get_highlights_by_book(ctx)
     ignored_books = _get_ignored_books(highlights_by_book, ignore)
     random_book = select_random_book(highlights_by_book, ignored_books)
@@ -114,24 +122,27 @@ def random(ctx: Context, book: bool, ignore: Tuple[str]):
 @click.option("-n", default=3, help="Number of highlights to select (default: 3).")
 @click.option("--ignore", "-i", multiple=True, help="Book title or index to ignore.")
 @click.pass_context
-def discord(ctx: Context, auth_token: str, channel_id: int, count: int, ignore: Tuple[str]):
+def discord(
+    ctx: Context, auth_token: str, channel_id: int, count: int, ignore: tuple[str]
+):
     highlights_by_book = _get_highlights_by_book(ctx)
     ignored_books = _get_ignored_books(highlights_by_book, ignore)
 
     from discord_client import DiscordClient
+
     client = DiscordClient(channel_id, highlights_by_book, count, ignored_books)
     client.send(auth_token)
 
 
-def _get_highlights_by_book(ctx: Context) -> dict:
+def _get_highlights_by_book(ctx: Context) -> dict[str, list[Highlight]]:
     return ctx.obj["highlights"]
 
 
-def _get_ignored_books(highlights_by_book: dict, ignore_args: Tuple[str]) -> List[str]:
+def _get_ignored_books(highlights_by_book: dict, ignore_args: Tuple[str]) -> list[str]:
     return [_arg_to_book(arg, highlights_by_book) for arg in ignore_args]
 
 
-def _arg_to_book(arg: str, highlights_by_book: dict) -> str:
+def _arg_to_book(arg: str, highlights_by_book: dict[str, list[Highlight]]) -> str:
     if arg.isnumeric():
         idx = int(arg) - 1
         return list(highlights_by_book)[idx]
