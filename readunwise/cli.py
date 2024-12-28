@@ -9,7 +9,6 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 from shutil import copyfile
-from typing import List, Tuple
 
 DEFAULT_KINDLE_DIR = r"/Volumes/Kindle/" if platform.system() == "Darwin" else r"D:/"
 DEFAULT_CLIPPINGS_FILE_PATH = Path(f"{DEFAULT_KINDLE_DIR}/documents/My Clippings.txt")
@@ -32,17 +31,24 @@ def cli(ctx: Context, clippings_file: str, usr: bool):
     ctx.obj["highlights"] = parse_clippings_file(ctx.obj["clippings_file"])
 
 
-@cli.command(help="List books found in the clippings file.")
+@cli.command(help="List clippings file.")
+@click.option("-a", "--all", is_flag=True, help="List all books and their highlights")
 @click.pass_context
-def ls(ctx: Context):
+def ls(ctx: Context, all: bool):
     table = Table()
-    table.add_column("Index", justify="center", style="magenta"),
+    table.add_column("Index", justify="center"),
     table.add_column("Title")
 
     highlights_by_book = _get_highlights_by_book(ctx)
 
     for i, book in enumerate(highlights_by_book):
-        table.add_row(str(i + 1), book)
+        table.add_row(f"[b cyan]{i + 1}", book)
+
+        if not all:
+            continue
+
+        for j, highlight in enumerate(highlights_by_book[book]):
+            table.add_row(f"[magenta]{i + 1}.{j + 1}", highlight.content)
 
     console.print(table)
 
@@ -138,7 +144,7 @@ def _get_highlights_by_book(ctx: Context) -> dict[str, list[Highlight]]:
     return ctx.obj["highlights"]
 
 
-def _get_ignored_books(highlights_by_book: dict, ignore_args: Tuple[str]) -> list[str]:
+def _get_ignored_books(highlights_by_book: dict, ignore_args: tuple[str]) -> list[str]:
     return [_arg_to_book(arg, highlights_by_book) for arg in ignore_args]
 
 

@@ -7,8 +7,8 @@ pip install readunwise
 ```
 
 | Command | Description                                 |
-|---------|---------------------------------------------|
-| ls      | List books found in the clippings file      |
+| ------- | ------------------------------------------- |
+| ls      | List clippings file                         |
 | cat     | Display highlights from a book              |
 | diff    | Compare clippings files                     |
 | save    | Save clippings file                         |
