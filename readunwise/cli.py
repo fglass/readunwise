@@ -87,7 +87,8 @@ def diff(ctx: Context, old_clippings_file: str):
 
         for highlight in highlights_by_book[book]:
             if highlight not in old_highlights:
-                console.print(f"[magenta]-[/] {highlight.content}")
+                prefix = ">" if highlight.is_note else "-"
+                console.print(f"[magenta]{prefix}[/] {highlight.content}")
 
 
 @cli.command(help="Save clippings file.")
