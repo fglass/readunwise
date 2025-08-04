@@ -26,9 +26,12 @@ console = Console(highlight=False, soft_wrap=True)
 @click.option("--usr", is_flag=True, help="Use default file in user directory")
 @click.pass_context
 def cli(ctx: Context, clippings_file: str, usr: bool):
-    ctx.ensure_object(dict)
-    ctx.obj["clippings_file"] = DEFAULT_OUTPUT_PATH if usr else clippings_file
-    ctx.obj["highlights"] = parse_clippings_file(ctx.obj["clippings_file"])
+    try:
+        ctx.ensure_object(dict)
+        ctx.obj["clippings_file"] = DEFAULT_OUTPUT_PATH if usr else clippings_file
+        ctx.obj["highlights"] = parse_clippings_file(ctx.obj["clippings_file"])
+    except:
+        console.print(f"[b red]Failed to load clippings file")
 
 
 @cli.command(help="List clippings file.")
@@ -139,6 +142,30 @@ def discord(
 
     client = DiscordClient(channel_id, highlights_by_book, count, ignored_books)
     client.send(auth_token)
+
+
+@cli.command(help="Display highlights from Readwise API.")
+@click.argument("auth_token")
+@click.option("--days", default=7, help="Number of days to look back (default: 7).")
+def readwise(auth_token: str, days: int):
+    try:
+        from readunwise.readwise_client import ReadwiseClient
+
+        client = ReadwiseClient(auth_token)
+        highlights_by_book = client.get_highlights(days)
+
+        if not highlights_by_book:
+            console.print("[yellow]No highlights found.")
+            return
+
+        for book in highlights_by_book:
+            console.print(f"\n[b cyan]{book}")
+
+            for highlight in highlights_by_book[book]:
+                prefix = ">" if highlight.is_note else "-"
+                console.print(f"[magenta]{prefix}[/] {highlight.content}")
+    except Exception as e:
+        console.print(f"[b red]Failed to fetch highlights: {e}")
 
 
 def _get_highlights_by_book(ctx: Context) -> dict[str, list[Highlight]]:
