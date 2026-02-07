@@ -14,6 +14,8 @@ DEFAULT_KINDLE_DIR = r"/Volumes/Kindle/" if platform.system() == "Darwin" else r
 DEFAULT_CLIPPINGS_FILE_PATH = Path(f"{DEFAULT_KINDLE_DIR}/documents/My Clippings.txt")
 DEFAULT_OUTPUT_PATH = Path.home() / ".readunwise"
 
+CLIPPINGS_REQUIRED_COMMANDS = {"ls", "cat", "diff", "save", "random", "discord"}
+
 console = Console(highlight=False, soft_wrap=True)
 
 
@@ -26,12 +28,14 @@ console = Console(highlight=False, soft_wrap=True)
 @click.option("--usr", is_flag=True, help="Use default file in user directory")
 @click.pass_context
 def cli(ctx: Context, clippings_file: str, usr: bool):
-    try:
-        ctx.ensure_object(dict)
-        ctx.obj["clippings_file"] = DEFAULT_OUTPUT_PATH if usr else clippings_file
-        ctx.obj["highlights"] = parse_clippings_file(ctx.obj["clippings_file"])
-    except:
-        console.print(f"[b red]Failed to load clippings file")
+    ctx.ensure_object(dict)
+    ctx.obj["clippings_file"] = DEFAULT_OUTPUT_PATH if usr else clippings_file
+
+    if ctx.invoked_subcommand in CLIPPINGS_REQUIRED_COMMANDS:
+        try:
+            ctx.obj["highlights"] = parse_clippings_file(ctx.obj["clippings_file"])
+        except Exception as e:
+            ctx.obj["error"] = e
 
 
 @cli.command(help="List clippings file.")
@@ -169,7 +173,20 @@ def readwise(auth_token: str, days: int):
 
 
 def _get_highlights_by_book(ctx: Context) -> dict[str, list[Highlight]]:
-    return ctx.obj["highlights"]
+    highlights = ctx.obj.get("highlights")
+    if highlights is not None:
+        return highlights
+
+    clippings_file = ctx.obj.get("clippings_file", DEFAULT_CLIPPINGS_FILE_PATH)
+    error = ctx.obj.get("error")
+
+    if error is not None:
+        raise click.ClickException(
+            f"Failed to load clippings file: {clippings_file}\n"
+            f"Reason: {error.__class__.__name__}: {error}"
+        )
+
+    raise click.ClickException(f"No highlights loaded from: {clippings_file}")
 
 
 def _get_ignored_books(highlights_by_book: dict, ignore_args: tuple[str]) -> list[str]:

@@ -6,7 +6,7 @@ CLIPPING_DELIMITER = "=========="
 
 
 def parse_clippings_file(clippings_file: str) -> dict[str, list[Highlight]]:
-    with open(clippings_file, "r+", encoding="utf8") as f:
+    with open(clippings_file, "r", encoding="utf8") as f:
         clippings = f.read().split(CLIPPING_DELIMITER)
 
     return _load_highlights(clippings)
